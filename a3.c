@@ -189,3 +189,66 @@ static void run_fifo(int F, long long *faults, long long *writes){
     }
     free(frames);
 }
+
+static void run_second(int M, int N, long long *faults, long long *writes){
+    *faults = 0;
+    *writes = 0;
+    int F = 50;
+    Frame *frames = malloc(sizeof(Frame)*F);
+    int used = 0;
+    int time = 0;
+    for(int i = 0; i < N; i++){
+        int p = P[i];
+        int d = D[i];
+        time++;
+        //check hit
+        int hit=-1;
+        for(int j = 0; j < used; j++){
+
+            if(frames[j].page==p){
+            hit=j;
+            break;
+            }
+        }
+
+        //on hit update dirty
+        if(hit >= 0){
+            if(d&&!frames[hit].dirty) {
+                frames[hit].dirty=1;
+            }
+        }
+
+        //on miss place or evict
+        (*faults)++;
+        if(used < F && hit == -1){
+            frames[used].page = p;
+            frames[used].dirty = d;
+            frames[used].load_time = time;
+            frames[used].rbits = 0;
+            used++;
+
+        }else if (hit >= 0)
+        {
+            
+        }
+        
+        else{
+            
+            int k=oldest_index(frames,used);
+            if(frames[k].dirty){
+                (*writes)++;
+            }
+            frames[k].page = p;
+            frames[k].dirty = d;
+            frames[k].load_time = time;
+            frames[k].rbits = 0;
+        }
+        if ((i+1)%M==0)
+        {
+            
+        }
+        
+        
+    }
+
+}
