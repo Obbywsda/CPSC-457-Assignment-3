@@ -39,7 +39,7 @@ static void read_csv(void){
         exit(1);
     }
 
-    //read each data line "page,dirty"
+    //read each data line
     while(fgets(line,sizeof(line), stdin)){
 
         int pg;
@@ -190,6 +190,80 @@ static void run_fifo(int F, long long *faults, long long *writes){
     free(frames);
 }
 
+//optimal simulation
+static void run_opt(int F, long long *faults, long long *writes){
+
+    *faults = 0;
+    *writes = 0;
+
+    Frame *frames = malloc(sizeof(Frame)*F);
+    int used = 0;
+    int time = 0;
+    reset_opt_ptrs();
+
+    for(int i = 0; i < N; i++){
+        int p = P[i];
+        int d = D[i];
+        time++;
+        advance_ptr_past(p,i);
+
+        //check hit
+        int hit = -1;
+        for(int j = 0; j < used; j++){
+             if(frames[j].page == p){
+                hit =j;
+                break;
+            }
+        }
+
+        // update dirty
+        if(hit >= 0){
+            if(d&&!frames[hit].dirty){
+                frames[hit].dirty=1;
+            }
+            continue;
+        }
+
+        (*faults)++;
+        if(used<F){
+            frames[used].page = p;
+            frames[used].dirty = d;
+            frames[used].load_time = time;
+            frames[used].rbits = 0;
+            used++;
+        }
+        else{
+            int victim = 0;
+            int best_next = -1;
+            int best_load = 0x7fffffff;
+
+            for(int j = 0; j < F;j++){
+
+                int pg=frames[j].page;
+                PosList *pl = &perpage[pg];
+                int nxt=0x7fffffff;
+
+                if(pl->ptr<pl->count) {
+                    nxt=pl->pos[pl->ptr];
+                }
+                if(nxt > best_next || (nxt == best_next && frames[j].load_time < best_load)){
+                    best_next=nxt;
+                    best_load=frames[j].load_time;victim=j;
+                }
+            }
+            if(frames[victim].dirty){
+                (*writes)++;
+            }
+
+            frames[victim].page = p;
+            frames[victim].dirty = d;
+            frames[victim].load_time = time;
+            frames[victim].rbits = 0;
+        }
+    }
+    free(frames);
+}
+
 int main(int argc,char **argv){
 
     //check input for algorithm type
@@ -216,3 +290,20 @@ int main(int argc,char **argv){
         }
         return 0;
     }
+
+    if(strcmp(argv[1],"OPT") == 0){
+
+        print_hdr_frames("OPT");
+
+        for(int F = 1; F <= 100; F++){
+            
+            long long pf = 0;
+            long long wb = 0;
+            
+            run_opt(F, &pf, &wb);
+            print_row_frames(F, pf, wb);
+        }
+        return 0;
+    }
+
+}
