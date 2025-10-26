@@ -189,3 +189,30 @@ static void run_fifo(int F, long long *faults, long long *writes){
     }
     free(frames);
 }
+
+int main(int argc,char **argv){
+
+    //check input for algorithm type
+    if(argc < 2){
+        printf("error, input is incorrect\n");
+        return 0;
+    }
+
+    //read input and prepare data
+    read_csv();
+    build_positions();
+
+    if(strcmp(argv[1], "FIFO") == 0){
+
+        print_hdr_frames("FIFO");
+
+        for(int F=1; F <= 100; F++){
+
+            long long pf = 0;
+            long long wb = 0;
+
+            run_fifo(F, &pf, &wb);
+            print_row_frames(F, pf, wb);
+        }
+        return 0;
+    }
