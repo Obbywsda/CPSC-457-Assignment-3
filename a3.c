@@ -32,12 +32,7 @@ static PosList perpage[MAX_PAGES];
 static void read_csv(void){
 
     char line[256];
-
-    //read the header line
-    if(!fgets(line,sizeof(line), stdin) || strstr(line, "Page#")==NULL){
-        printf("missing header\n");
-        exit(1);
-    }
+    fgets(line,sizeof(line), stdin);
 
     //read each data line
     while(fgets(line,sizeof(line), stdin)){
