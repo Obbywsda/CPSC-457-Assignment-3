@@ -225,16 +225,51 @@ static void run_second(int M, int N, long long *faults, long long *writes){
             frames[used].dirty = d;
             frames[used].load_time = time;
             frames[used].rbits = 0;
+            hit = used;
             used++;
-
-        }else if (hit >= 0)
-        {
-            
         }
-        
         else{
+            int arr[F];
+            int count = 0;
+            int min = NULL;
+            for (int a = 0; a < used; a++)
+            {
+                if (min == NULL)
+                {
+                    arr[count] = a;
+                    min= frames[a].rbits;
+                    count++;
+                }else{
+                    if (min > frames[a].rbits)
+                    {
+                        count = 0;
+                        arr[count] = a;
+                        min = frames[a].rbits;
+                        count++; 
+                    }else if (min == frames[a].rbits)
+                    {
+                        arr[count] = a;
+                        count++;
+                    }
+                }
+            }
+            int cut = 0;
+            for (int d = 0; d < count; d++)
+            {
+                if (d==0)
+                {
+                    cut = arr[0];
+                }else if (frames[arr[d]].load_time<frames[arr[cut]].load_time)
+                {
+                    cut = arr[d];
+                }
+                
+                
+            }
             
-            int k=oldest_index(frames,used);
+            
+            
+            int k=cut;
             if(frames[k].dirty){
                 (*writes)++;
             }
@@ -243,15 +278,21 @@ static void run_second(int M, int N, long long *faults, long long *writes){
             frames[k].load_time = time;
             frames[k].rbits = 0;
         }
-        if ((i+1)%M==0)
-        {
-            
+        if ((i+1)%M==0){
+            for(int y = 0; y < used; y++)
+            {
+                frames[y].rbits == frames[y].rbits>>1;
+            }
         }
-        
+
+        frames[hit].rbits= frames[hit].rbits | 1<<(N-1);
         
     }
-
+    free(frames);  
 }
+
+
+
 
 //optimal simulation
 static void run_opt(int F, long long *faults, long long *writes){
