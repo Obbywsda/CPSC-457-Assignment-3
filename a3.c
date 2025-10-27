@@ -125,6 +125,14 @@ static void print_hdr_frames(const char *name){
     printf("+----------+----------------+-----------------+\n");
 }
 
+static void print_sec_frames(const char *name, int value,const char *type, const char *iter){
+
+    printf("%s, %s = %d \n", name,type,value);
+    printf("+----------+----------------+-----------------+\n");
+    printf("|    %s     | Page Faults    | Write-backs     |\n",iter);
+    printf("+----------+----------------+-----------------+\n");
+}
+
 static void print_row_frames(int F,long long pf,long long wb){
 
     printf("| %8d | %14lld | %15lld |\n",F,pf,wb);
@@ -190,13 +198,14 @@ static void run_fifo(int F, long long *faults, long long *writes){
     free(frames);
 }
 
-static void run_second(int M, int N, long long *faults, long long *writes){
+static void run_second(int m, int n, long long *faults, long long *writes){
     *faults = 0;
     *writes = 0;
     int F = 50;
     Frame *frames = malloc(sizeof(Frame)*F);
     int used = 0;
     int time = 0;
+    int clock =0;
     for(int i = 0; i < N; i++){
         int p = P[i];
         int d = D[i];
@@ -216,76 +225,59 @@ static void run_second(int M, int N, long long *faults, long long *writes){
             if(d&&!frames[hit].dirty) {
                 frames[hit].dirty=1;
             }
-        }
+            frames[hit].rbits= frames[hit].rbits | 1<<(n-1);
+            
+        }else{
 
-        //on miss place or evict
-        (*faults)++;
-        if(used < F && hit == -1){
-            frames[used].page = p;
-            frames[used].dirty = d;
-            frames[used].load_time = time;
-            frames[used].rbits = 0;
-            hit = used;
-            used++;
-        }
-        else{
-            int arr[F];
-            int count = 0;
-            int min = NULL;
-            for (int a = 0; a < used; a++)
-            {
-                if (min == NULL)
+            //on miss place or evict
+            (*faults)++;
+            if(used < F){
+                frames[used].page = p;
+                frames[used].dirty = d;
+                frames[used].load_time = time;
+                frames[used].rbits = 1<<(n-1);
+                used++;
+                clock = used;
+            }
+            else{
+                int index = clock;
+                int min = frames[clock].rbits;
+                for (int a = 0; a < F; a++)
                 {
-                    arr[count] = a;
-                    min= frames[a].rbits;
-                    count++;
-                }else{
-                    if (min > frames[a].rbits)
+                    if (min > frames[clock].rbits)
                     {
-                        count = 0;
-                        arr[count] = a;
-                        min = frames[a].rbits;
-                        count++; 
-                    }else if (min == frames[a].rbits)
-                    {
-                        arr[count] = a;
-                        count++;
+                        index = clock;
+                        min = frames[clock].rbits;
+                    }
+                    if (clock<F-1){
+                        clock++;
+                    }else{
+                        clock =0;
                     }
                 }
-            }
-            int cut = 0;
-            for (int d = 0; d < count; d++)
-            {
-                if (d==0)
-                {
-                    cut = arr[0];
-                }else if (frames[arr[d]].load_time<frames[arr[cut]].load_time)
-                {
-                    cut = arr[d];
+                if(frames[index].dirty){
+                    (*writes)++;
                 }
+                frames[index].page = p;
+                frames[index].dirty = d;
+                frames[index].load_time = time;
+                frames[index].rbits = 0;
                 
-                
+                clock = index;
+                if (clock<F-1){
+                        clock++;
+                }else{
+                    clock =0;
+                }
             }
-            
-            
-            
-            int k=cut;
-            if(frames[k].dirty){
-                (*writes)++;
-            }
-            frames[k].page = p;
-            frames[k].dirty = d;
-            frames[k].load_time = time;
-            frames[k].rbits = 0;
         }
-        if ((i+1)%M==0){
+        if ((i+1)%m==0){
             for(int y = 0; y < used; y++)
             {
-                frames[y].rbits == frames[y].rbits>>1;
+                frames[y].rbits = frames[y].rbits>>1;
             }
         }
 
-        frames[hit].rbits= frames[hit].rbits | 1<<(N-1);
         
     }
     free(frames);  
@@ -406,6 +398,32 @@ int main(int argc,char **argv){
             
             run_opt(F, &pf, &wb);
             print_row_frames(F, pf, wb);
+        }
+        return 0;
+    }
+
+    if(strcmp(argv[1],"CLK") == 0){
+
+        print_sec_frames("OPT", 10, "m","n");
+
+        for(int i = 1; i <= 32; i++){
+            
+            long long pf = 0;
+            long long wb = 0;
+            
+            run_second(10,i, &pf, &wb);
+            print_row_frames(i, pf, wb);
+        }
+
+        print_sec_frames("OPT", 8, "n","m");
+
+        for(int i = 1; i <= 100; i++){
+            
+            long long pf = 0;
+            long long wb = 0;
+            
+            run_second(i,8, &pf, &wb);
+            print_row_frames(i, pf, wb);
         }
         return 0;
     }
