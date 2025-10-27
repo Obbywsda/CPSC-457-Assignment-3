@@ -4,6 +4,10 @@
 #include <stdint.h>
 
 //cpsc 457 assignment 3
+//Croy Dobson
+//UCID: 30167963
+//Yasir Hussain 
+//30195085
 
 #define MAX_REFS 300000
 #define MAX_PAGES 100000
