@@ -244,6 +244,7 @@ static void run_second(int m, int n, long long *faults, long long *writes){
             else{
                 int index = clock;
                 int min = frames[clock].rbits;
+                //finds the index of the first page with smallest registery
                 for (int a = 0; a < F; a++)
                 {
                     if (min > frames[clock].rbits)
@@ -251,20 +252,23 @@ static void run_second(int m, int n, long long *faults, long long *writes){
                         index = clock;
                         min = frames[clock].rbits;
                     }
+                    //updates clock to start at the index of the next frame, or at 0 if adding one would be out of range
                     if (clock<F-1){
                         clock++;
                     }else{
                         clock =0;
                     }
                 }
+                //updates writes
                 if(frames[index].dirty){
                     (*writes)++;
                 }
+                //pushes page out
                 frames[index].page = p;
                 frames[index].dirty = d;
                 frames[index].load_time = time;
                 frames[index].rbits = 0;
-                
+                //updates clock to start at the index of the next frame, or at 0 if adding one would be out of range
                 clock = index;
                 if (clock<F-1){
                         clock++;
@@ -273,6 +277,7 @@ static void run_second(int m, int n, long long *faults, long long *writes){
                 }
             }
         }
+        //by checking for remainder, I can check if its time to bit shift the register
         if ((i+1)%m==0){
             for(int y = 0; y < used; y++)
             {
@@ -406,7 +411,7 @@ int main(int argc,char **argv){
 
     if(strcmp(argv[1],"CLK") == 0){
 
-        print_sec_frames("OPT", 10, "m","n");
+        print_sec_frames("CLK", 10, "m","n");
 
         for(int i = 1; i <= 32; i++){
             
@@ -417,7 +422,7 @@ int main(int argc,char **argv){
             print_row_frames(i, pf, wb);
         }
 
-        print_sec_frames("OPT", 8, "n","m");
+        print_sec_frames("CLK", 8, "n","m");
 
         for(int i = 1; i <= 100; i++){
             
